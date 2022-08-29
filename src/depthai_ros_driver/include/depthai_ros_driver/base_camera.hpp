@@ -66,6 +66,10 @@
 #include "sensor_msgs/msg/image.hpp"
 #include "sensor_msgs/msg/imu.hpp"
 #include "std_srvs/srv/trigger.hpp"
+#include "NumCpp.hpp"
+#include <Eigen/Dense>
+#include <unsupported/Eigen/CXX11/Tensor>
+
 
 namespace depthai_ros_driver
 {
@@ -137,6 +141,10 @@ public:
   void setup_recording_q();
   void setup_control_q();
   void setup_logger_q();
+  void setup_nnpointcloud();
+  void print_result(nc::NdArray<double> input);
+  void meshgrid(Eigen::VectorXd &vecX, Eigen::VectorXd &vecY, Eigen::MatrixXd &meshX, Eigen::MatrixXd &meshY);
+  std::vector<float> create_xyz(int width, int height, std::vector<std::vector<float>> camera_matrix);
   rcl_interfaces::msg::SetParametersResult parameter_cb(
     const std::vector<rclcpp::Parameter> & params);
   void setup_config_q();
@@ -146,7 +154,7 @@ public:
   void override_init_stereo_config(const stereo_params::StereoInitConfig & config);
   void override_runtime_stereo_config(const stereo_params::StereoRuntimeConfig & config);
   void override_base_config(const BaseCameraConfig & config);
-
+  std::shared_ptr<dai::node::StereoDepth> stereo_;
   std::shared_ptr<dai::Pipeline> get_pipeline();
   void link_nn(std::shared_ptr<dai::node::NeuralNetwork> nn);
   void link_spatial_detection(std::shared_ptr<dai::node::SpatialDetectionNetwork> nn);
@@ -171,6 +179,7 @@ private:
   void logger_cb(const std::string & name, const std::shared_ptr<dai::ADatatype> & data);
 
   void set_frame_ids();
+  void timer_callback();
   rclcpp::Service<Trigger>::SharedPtr trigger_recording_srv_, restart_cam_srv_, start_cam_srv_,
     shutdown_cam_srv_;
   OnSetParametersCallbackHandle::SharedPtr param_cb_handle_;
@@ -187,7 +196,7 @@ private:
   std::shared_ptr<dai::node::ColorCamera> camrgb_;
   std::shared_ptr<dai::node::MonoCamera> mono_left_;
   std::shared_ptr<dai::node::MonoCamera> mono_right_;
-  std::shared_ptr<dai::node::StereoDepth> stereo_;
+
   std::shared_ptr<dai::node::SystemLogger> logger_;
   std::shared_ptr<dai::node::IMU> imu_;
   std::shared_ptr<dai::node::XLinkOut> xout_rgb_, xout_depth_, xout_left_, xout_right_, xout_enc_,
@@ -215,6 +224,10 @@ private:
     "car", "cat", "chair", "cow", "diningtable", "dog", "horse",
     "motorbike", "person", "pottedplant", "sheep", "sofa", "train", "tvmonitor"};
   std::unordered_map<dai::CameraBoardSocket, std::string> frame_ids_;
+  dai::CalibrationHandler calibData_;
+  std::shared_ptr<dai::DataOutputQueue> queue_;
+  std::vector<std::vector<float>> M_right_;
+
 };
 }  // namespace depthai_ros_driver
 

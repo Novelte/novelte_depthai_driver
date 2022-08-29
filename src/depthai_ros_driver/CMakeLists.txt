@@ -18,6 +18,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 find_package(ament_cmake_auto REQUIRED)
+find_package(Eigen3 REQUIRED)
 ament_auto_find_build_dependencies()
 include_directories(include)
 
@@ -29,6 +30,7 @@ ament_auto_add_library(
   src/params_stereo.cpp
   src/rgbd_camera_obj.cpp
   src/mobilenet_camera_obj.cpp
+  src/nn_pointcloud.cpp
   src/segmentation_camera_obj.cpp
 )
 
@@ -37,9 +39,11 @@ target_link_libraries(
   ${PROJECT_NAME}
   depthai::opencv
   depthai::core
+  Eigen3::Eigen
   ${OpenCV_LIBRARIES}
 )
 rclcpp_components_register_nodes(${PROJECT_NAME} "${PROJECT_NAME}::RGBDCamera")
+rclcpp_components_register_nodes(${PROJECT_NAME} "${PROJECT_NAME}::NnPointcloud")
 rclcpp_components_register_nodes(${PROJECT_NAME} "${PROJECT_NAME}::MobilenetCamera")
 rclcpp_components_register_nodes(${PROJECT_NAME} "${PROJECT_NAME}::SegmentationCamera")
 ament_export_include_directories(include)

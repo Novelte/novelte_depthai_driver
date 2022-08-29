@@ -19,6 +19,7 @@
 // SOFTWARE.
 //
 #include "depthai_ros_driver/base_camera.hpp"
+#include "depthai_ros_driver/half.hpp"
 
 #include <algorithm>
 #include <cstdint>
@@ -50,7 +51,10 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/camera_info.hpp"
 #include "std_srvs/srv/trigger.hpp"
-
+#include <typeinfo>
+#include <iostream>
+#include <fstream>
+using half_float::half;
 namespace depthai_ros_driver
 {
 BaseCamera::BaseCamera(
@@ -167,6 +171,7 @@ void BaseCamera::start_device()
   }
   cam_running_ = true;
   device_name_ = device_->getMxId();
+  // calibData_ = device_->readCalibration();
   RCLCPP_INFO(this->get_logger(), "Camera %s connected!", device_name_.c_str());
 }
 
@@ -704,7 +709,7 @@ void BaseCamera::declare_common_params()
   base_config_.enable_depth =
     this->declare_parameter<bool>(base_param_names_.enable_depth, true);
   base_config_.enable_lr =
-    this->declare_parameter<bool>(base_param_names_.enable_lr, true);
+    this->declare_parameter<bool>(base_param_names_.enable_lr, false);
   base_config_.enable_imu =
     this->declare_parameter<bool>(base_param_names_.enable_imu, false);
   base_config_.enable_recording =
@@ -718,5 +723,147 @@ void BaseCamera::declare_common_params()
   base_config_.camera_ip =
     this->declare_parameter<std::string>(base_param_names_.camera_ip, "");
 }
+void BaseCamera::setup_nnpointcloud()
+{
+  RCLCPP_INFO(this->get_logger(), "setup_nnpointcloud...");
+  auto readCalibData_ = device_->readCalibration();
+  M_right_ = readCalibData_.getCameraIntrinsics(dai::CameraBoardSocket::RIGHT, dai::Size2f(640,400));
+  // RCLCPP_INFO(this->get_logger(), "getCameraIntrinsics ... \n %f %f %f", M_right_[0][0], M_right_[0][1], M_right_[0][2]);
+  std::vector<float> buffer = create_xyz(640, 400, M_right_);
+
+  // printf("printing buffer....");
+  // for(int i = 768000;i < 768006; i++)
+  // {
+  //   RCLCPP_INFO(this->get_logger(), "printing bufer: %f", buffer[i]);
+  // }
+  // uint8_t* data = xyz.data();
+  auto buff = std::make_shared<dai::Buffer>();
+  // std::vector<float> buffer(xyz.data(), xyz.data() + xyz.size());
+  std::vector<uint8_t> send_buffer;
+  send_buffer.resize(buffer.size() * 2);
+  uint8_t *sends;
+  RCLCPP_INFO(this->get_logger(), "memcpy ing...");
+  for(int i = 0; i < buffer.size(); i++)
+  {
+    auto val = (half) buffer[i];
+    sends = (uint8_t *) &val;
+    memcpy(send_buffer.data() + sizeof(half) * i, sends, sizeof(half));
+  }
+  // std::cout << "send_buffer: \n";
+  std::ofstream myfile;
+  for(int i = 769920; i < 769926; i++)
+  {
+    RCLCPP_INFO(this->get_logger(), "printing send_buffer: %d", send_buffer[i]);
+    // printf("%d ", send_buffer[i]);
+
+    // std::cout << send_buffer[i] << " ";
+    // if ((i+1)/6 == 1)
+    // {
+    //   std::cout << std::endl;
+    // }
+
+  
+  // myfile.write(reinterpret_cast<char*>(&send_buffer[i]), sizeof(uint8_t));
+  // myfile.write(" ");
+  // if ((i+1)%6 == 0)
+  // {
+  //   myfile << std::endl;
+  // }
+
+  } 
+  buff->setData(send_buffer);
+  device_->getInputQueue("xyz_in")->send(buff);
+}
+
+
+std::vector<float> BaseCamera::create_xyz(int width, int height, std::vector<std::vector<float>> camera_matrix)
+{
+  RCLCPP_INFO(this->get_logger(), "create_xyz...");
+  Eigen::VectorXd vecW, vecH;
+	vecW.setZero(width, 1);
+	vecH.setZero(height, 1);
+  vecW = Eigen::VectorXd::LinSpaced(width, 0, width -1);
+  vecH = Eigen::VectorXd::LinSpaced(height, 0, height -1);
+  // nc::NdArray<double> xs = nc::linspace(0.0, double(width - 1), double(width));
+  // nc::NdArray<double> ys = nc::linspace(0.0, double(height - 1), double(height));
+  Eigen::MatrixXd meshX, meshY;
+  meshX.setZero(height, width);
+	meshY.setZero(height, width);
+  meshgrid(vecW, vecH, meshX, meshY);
+  // std::cout << "size X: "<< meshX.cols() << " " << meshX.rows() << std::endl;
+  // std::cout << "size Y: " << meshY.cols() << " " << meshY.rows() << std::endl;
+  // base_grid.first.print();
+  // base_grid.second.print();
+  RCLCPP_INFO(this->get_logger(), "stack_grid...");
+  std::vector<float> stack_grid;
+  RCLCPP_INFO(this->get_logger(), "tensor_grid...");
+  // meshX= meshX.transpose();
+  // meshY = meshY.transpose();
+  Eigen::MatrixXd cx, cy;
+  RCLCPP_INFO(this->get_logger(), "fx fy...");
+  cx.setZero(height, width);
+	cy.setZero(height, width);
+  float fx = camera_matrix[0][0];
+  float fy = camera_matrix[1][1];
+  RCLCPP_INFO(this->get_logger(), "cx cy...");
+  cx.setConstant(camera_matrix[0][2]);
+  cy.setConstant(camera_matrix[1][2]);
+  Eigen::MatrixXd x_coord, y_coord;
+  RCLCPP_INFO(this->get_logger(), "x_coord y_coord...");
+  x_coord.setZero(height, width);
+	y_coord.setZero(height, width);
+  x_coord = (meshX - cx) / fx;
+  y_coord = (meshY - cy) / fy;
+  for(int i = 320; i < 332; i++)
+  {
+    RCLCPP_INFO(this->get_logger(), "%f ", x_coord(125, i));
+  }
+  for(int i = 320; i < 332; i++)
+  {
+    RCLCPP_INFO(this->get_logger(), "%f ", y_coord(125, i));
+  }
+
+  RCLCPP_INFO(this->get_logger(), "stack_grid...");
+  for(int i = 0; i < height; i++)
+  {
+    for(int j = 0; j < width; j++)
+    {
+    stack_grid.push_back((float)x_coord(i, j));
+    stack_grid.push_back((float)y_coord(i, j));
+    stack_grid.push_back(1.0f);
+    }
+  }
+  // for(int i = 0; i < 10; i++)
+  // {
+  //   std::cout << stack_grid(i, 0, 0) << " ";
+  // }
+
+
+  return stack_grid;
+
+}
+
+void  BaseCamera::meshgrid(Eigen::VectorXd &vecX, Eigen::VectorXd &vecY, Eigen::MatrixXd &meshX, Eigen::MatrixXd &meshY)
+{
+  RCLCPP_INFO(this->get_logger(), "meshgrid...");
+	int vecXLength = vecX.size();
+	int vecYLength = vecY.size();
+	//meshX.resize(vecXLength, vecYLength);
+	//meshY.resize(vecXLength, vecYLength);
+	//std::cout << "meshX.size()\n" << meshX.size() << "\n" << "meshY.size()\n" << meshY.size() << std::endl;
+	for (int i = 0; i < vecYLength; ++i)
+	{	
+		meshX.row(i) = vecX;
+		// std::cout << "meshX.row("<< i <<")\n" << meshX.row(i)<< std::endl;
+	}
+
+	for (int i = 0; i < vecXLength; ++i)
+	{
+		meshY.col(i) = vecY.transpose();
+		//std::cout << "meshX.row(" << i << ")\n" << meshY.col(i) << std::endl;
+	}
+  RCLCPP_INFO(this->get_logger(), "after meshgrid...");
+}
+
 
 }  // namespace depthai_ros_driver
