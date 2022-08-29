@@ -66,7 +66,6 @@
 #include "sensor_msgs/msg/image.hpp"
 #include "sensor_msgs/msg/imu.hpp"
 #include "std_srvs/srv/trigger.hpp"
-#include "NumCpp.hpp"
 #include <Eigen/Dense>
 #include <unsupported/Eigen/CXX11/Tensor>
 
@@ -142,7 +141,6 @@ public:
   void setup_control_q();
   void setup_logger_q();
   void setup_nnpointcloud();
-  void print_result(nc::NdArray<double> input);
   void meshgrid(Eigen::VectorXd &vecX, Eigen::VectorXd &vecY, Eigen::MatrixXd &meshX, Eigen::MatrixXd &meshY);
   std::vector<float> create_xyz(int width, int height, std::vector<std::vector<float>> camera_matrix);
   rcl_interfaces::msg::SetParametersResult parameter_cb(
