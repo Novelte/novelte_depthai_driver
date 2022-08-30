@@ -46,15 +46,15 @@ struct StereoInitConfig
   uint8_t stereo_conf_threshold = 255;
   bool subpixel = true;
   bool extended_disp = false;
-  int8_t rectify_edge_fill_color = -1;
-  bool enable_speckle_filter = false;
-  uint16_t speckle_range = 50;
+  int8_t rectify_edge_fill_color = 0;
+  bool enable_speckle_filter = true;
+  uint16_t speckle_range = 60;
   bool enable_temporal_filter = true;
   bool enable_spatial_filter = true;
   uint8_t hole_filling_radius = 2;
   uint8_t spatial_filter_iterations = 1;
-  uint16_t threshold_filter_min_range = 400;
-  uint16_t threshold_filter_max_range = 15000;
+  uint16_t threshold_filter_min_range = 700;
+  uint16_t threshold_filter_max_range = 4000;
   uint8_t decimation_factor = 1;
 };
 
