@@ -69,8 +69,8 @@ void NnPointcloud::setup_pipeline()
   auto pipeline = get_pipeline();
   nn_ = pipeline->create<dai::node::NeuralNetwork>();
   nn_->setBlobPath(nn_path_);
-  // nn_->setNumInferenceThreads(2);
-  // nn_->input.setBlocking(false);
+  nn_->setNumInferenceThreads(2);
+  nn_->input.setBlocking(false);
 
 
   stereo_->depth.link(nn_->inputs["depth"]);
@@ -129,21 +129,26 @@ void NnPointcloud::det_cb(const std::string & name, const std::shared_ptr<dai::A
   cloud_msg->is_dense = false;
   cloud_msg->is_bigendian = false;
   auto data_pc = in_pc->getFirstLayerFp16();
-  auto data_raw = in_pc->getRaw()->data;
+  // auto data_raw = in_pc->getRaw()->data;
   // RCLCPP_INFO(this->get_logger(), "size: %d", data_raw.size());
 
-  RCLCPP_INFO(this->get_logger(), "pc: %f %f %f %f %f %f %f %f %f %f", data_pc[0], data_pc[1], data_pc[2], data_pc[3], data_pc[4], data_pc[5], data_pc[6], data_pc[7], data_pc[8], data_pc[9]);
-
+  // RCLCPP_INFO(this->get_logger(), "pc: %f %f %f %f %f %f %f %f %f %f", data_pc[0], data_pc[1], data_pc[2], data_pc[3], data_pc[4], data_pc[5], data_pc[6], data_pc[7], data_pc[8], data_pc[9]);
+  // RCLCPP_INFO(this->get_logger(), "pc: %f %f %f %f %f %f %f %f %f %f", 
+  // data_pc[data_pc.size()-0], 
+  // data_pc[data_pc.size()-1], 
+  // data_pc[data_pc.size()-2], 
+  // data_pc[data_pc.size()-3], 
+  // data_pc[data_pc.size()-4], 
+  // data_pc[data_pc.size()-5], 
+  // data_pc[data_pc.size()-6], 
+  // data_pc[data_pc.size()-7], 
+  // data_pc[data_pc.size()-8], 
+  // data_pc[data_pc.size()-9]);
   
   // RCLCPP_INFO(this->get_logger(), "data_pc size: %d", data_pc.size());
   sensor_msgs::PointCloud2Modifier pcd_modifier(*cloud_msg);
   pcd_modifier.setPointCloud2FieldsByString(1, "xyz");
-  // printf("printing received points: \n");
-  for(int i = 0; i < 10; i++)
-  {
-    printf("%f ", data_pc[i]);
-  }
-  printf("\n");
+
   sensor_msgs::PointCloud2Iterator<float> iter_x(*cloud_msg, "x");
   sensor_msgs::PointCloud2Iterator<float> iter_y(*cloud_msg, "y");
   sensor_msgs::PointCloud2Iterator<float> iter_z(*cloud_msg, "z");
@@ -152,19 +157,18 @@ void NnPointcloud::det_cb(const std::string & name, const std::shared_ptr<dai::A
   {
     for(int j = 0; j < cloud_msg->width; j++, ++iter_x, ++iter_y, ++iter_z)
     {
+      auto x = data_pc[j + i * cloud_msg->width ];
+      auto y = data_pc[j + i * cloud_msg->width + cloud_msg->width * cloud_msg->height];
+      auto z = data_pc[j + i * cloud_msg->width + cloud_msg->width * cloud_msg->height * 2];
       // RCLCPP_INFO(this->get_logger(), "pc: %f", data_pc[cloud_msg->width * cloud_msg->height + i * cloud_msg->width + j]);
-      if (data_pc[2 * cloud_msg->width * cloud_msg->height + i * cloud_msg->width + j] /1000 > 2.5 )
-      {
-        *iter_x = *iter_y = *iter_z = bad_point;
-
-        continue;
-      }
-      *iter_x = data_pc[i * cloud_msg->width + j] / 1000.0;
-      *iter_y = data_pc[cloud_msg->width * cloud_msg->height + i * cloud_msg->width + j] / 1000.0;
-      *iter_z = data_pc[2 * cloud_msg->width * cloud_msg->height + i * cloud_msg->width + j] / 1000.0;    
-      // *iter_x = data_pc[2 * cloud_msg->width * cloud_msg->height + i * cloud_msg->width + j] / 1000.0;
-      // *iter_y = -data_pc[i * cloud_msg->width + j] / 1000.0;
-      // *iter_z = -data_pc[cloud_msg->width * cloud_msg->height + i * cloud_msg->width + j] / 1000.0;
+      // if (!std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z) )
+      // {
+      //   *iter_x = *iter_y = *iter_z = bad_point;
+      //   continue;
+      // }
+      *iter_x = x / 1000.0;
+      *iter_y = y / 1000.0;
+      *iter_z = z / 1000.0;    
     }
   }
   pc_pub_->publish(*cloud_msg);
@@ -175,4 +179,4 @@ void NnPointcloud::det_cb(const std::string & name, const std::shared_ptr<dai::A
 
 }  // namespace depthai_ros_driver
 #include "rclcpp_components/register_node_macro.hpp"
-RCLCPP_COMPONENTS_REGISTER_NODE(depthai_ros_driver::NnPointcloud);
+RCLCPP_COMPONENTS_REGISTER_NODE(depthai_ros_driver::NnPointcloud)
