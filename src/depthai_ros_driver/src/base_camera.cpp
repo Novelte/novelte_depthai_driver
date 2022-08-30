@@ -750,27 +750,23 @@ void BaseCamera::setup_nnpointcloud()
     memcpy(send_buffer.data() + sizeof(half) * i, sends, sizeof(half));
   }
   // std::cout << "send_buffer: \n";
-  std::ofstream myfile;
-  for(int i = 769920; i < 769926; i++)
-  {
-    RCLCPP_INFO(this->get_logger(), "printing send_buffer: %d", send_buffer[i]);
-    // printf("%d ", send_buffer[i]);
-
-    // std::cout << send_buffer[i] << " ";
-    // if ((i+1)/6 == 1)
-    // {
-    //   std::cout << std::endl;
-    // }
-
-  
-  // myfile.write(reinterpret_cast<char*>(&send_buffer[i]), sizeof(uint8_t));
-  // myfile.write(" ");
-  // if ((i+1)%6 == 0)
+  // std::ofstream myfile;
+  // for(int i = 769920; i < 769926; i++)
   // {
-  //   myfile << std::endl;
-  // }
-
-  } 
+  //   RCLCPP_INFO(this->get_logger(), "printing send_buffer: %d", send_buffer[i]);
+  //   // printf("%d ", send_buffer[i]);
+  //   // std::cout << send_buffer[i] << " ";
+  //   // if ((i+1)/6 == 1)
+  //   // {
+  //   //   std::cout << std::endl;
+  //   // }
+  // // myfile.write(reinterpret_cast<char*>(&send_buffer[i]), sizeof(uint8_t));
+  // // myfile.write(" ");
+  // // if ((i+1)%6 == 0)
+  // // {
+  // //   myfile << std::endl;
+  // // }
+  // } 
   buff->setData(send_buffer);
   device_->getInputQueue("xyz_in")->send(buff);
 }
@@ -794,11 +790,12 @@ std::vector<float> BaseCamera::create_xyz(int width, int height, std::vector<std
   // std::cout << "size Y: " << meshY.cols() << " " << meshY.rows() << std::endl;
   // base_grid.first.print();
   // base_grid.second.print();
-  RCLCPP_INFO(this->get_logger(), "stack_grid...");
+  // RCLCPP_INFO(this->get_logger(), "stack_grid...");
   std::vector<float> stack_grid;
-  RCLCPP_INFO(this->get_logger(), "tensor_grid...");
+  // RCLCPP_INFO(this->get_logger(), "tensor_grid...");
   // meshX= meshX.transpose();
   // meshY = meshY.transpose();
+  
   Eigen::MatrixXd cx, cy;
   RCLCPP_INFO(this->get_logger(), "fx fy...");
   cx.setZero(height, width);
@@ -814,14 +811,14 @@ std::vector<float> BaseCamera::create_xyz(int width, int height, std::vector<std
 	y_coord.setZero(height, width);
   x_coord = (meshX - cx) / fx;
   y_coord = (meshY - cy) / fy;
-  for(int i = 320; i < 332; i++)
-  {
-    RCLCPP_INFO(this->get_logger(), "%f ", x_coord(125, i));
-  }
-  for(int i = 320; i < 332; i++)
-  {
-    RCLCPP_INFO(this->get_logger(), "%f ", y_coord(125, i));
-  }
+  // for(int i = 320; i < 332; i++)
+  // {
+  //   RCLCPP_INFO(this->get_logger(), "%f ", x_coord(125, i));
+  // }
+  // for(int i = 320; i < 332; i++)
+  // {
+  //   RCLCPP_INFO(this->get_logger(), "%f ", y_coord(125, i));
+  // }
 
   RCLCPP_INFO(this->get_logger(), "stack_grid...");
   for(int i = 0; i < height; i++)
