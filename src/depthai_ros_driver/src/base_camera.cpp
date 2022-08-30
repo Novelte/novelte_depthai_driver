@@ -795,6 +795,19 @@ std::vector<float> BaseCamera::create_xyz(int width, int height, std::vector<std
   // RCLCPP_INFO(this->get_logger(), "tensor_grid...");
   // meshX= meshX.transpose();
   // meshY = meshY.transpose();
+  RCLCPP_INFO(this->get_logger(), "M_right: %d", camera_matrix.size());
+  int ooo = 0;
+  for (auto cm : camera_matrix)
+  {
+    RCLCPP_INFO(this->get_logger(), "M_right[%d]: %d", ooo, cm.size());
+    int kkk = 0;
+    for (auto value : cm)
+    {
+      RCLCPP_INFO(this->get_logger(), "M_right[%d][%d]: %f", ooo, kkk, value);
+      kkk++;
+    }
+    ooo++;
+  }
   
   Eigen::MatrixXd cx, cy;
   RCLCPP_INFO(this->get_logger(), "fx fy...");
