@@ -54,6 +54,8 @@
 #include <typeinfo>
 #include <iostream>
 #include <fstream>
+#include "fp16/fp16.h"
+
 using half_float::half;
 namespace depthai_ros_driver
 {
@@ -727,47 +729,14 @@ void BaseCamera::setup_nnpointcloud()
 {
   RCLCPP_INFO(this->get_logger(), "setup_nnpointcloud...");
   auto readCalibData_ = device_->readCalibration();
-  M_right_ = readCalibData_.getCameraIntrinsics(dai::CameraBoardSocket::RIGHT, dai::Size2f(640,400));
-  // RCLCPP_INFO(this->get_logger(), "getCameraIntrinsics ... \n %f %f %f", M_right_[0][0], M_right_[0][1], M_right_[0][2]);
-  std::vector<float> buffer = create_xyz(640, 400, M_right_);
-
-  // printf("printing buffer....");
-  // for(int i = 768000;i < 768006; i++)
-  // {
-  //   RCLCPP_INFO(this->get_logger(), "printing bufer: %f", buffer[i]);
-  // }
-  // uint8_t* data = xyz.data();
+  // M_right_ = readCalibData_.getCameraIntrinsics(dai::CameraBoardSocket::AUTO, dai::Size2f(640,400));
+  int aa, bb;
+  std::tuple<std::vector<std::vector<float>>, int, int> aaaaa = readCalibData_.getDefaultIntrinsics(dai::CameraBoardSocket::RIGHT);
+  // M_right_, aa, bb =
+  M_right_ = std::get<std::vector<std::vector<float>>>(aaaaa);
+  std::vector<uint8_t> buffer_2 = create_xyz2(640, 400, M_right_);
   auto buff = std::make_shared<dai::Buffer>();
-  // std::vector<float> buffer(xyz.data(), xyz.data() + xyz.size());
-  std::vector<uint8_t> send_buffer;
-  send_buffer.resize(buffer.size() * 2);
-  uint8_t *sends;
-  RCLCPP_INFO(this->get_logger(), "memcpy ing...");
-  for(int i = 0; i < buffer.size(); i++)
-  {
-    auto val = (half) buffer[i];
-    sends = (uint8_t *) &val;
-    memcpy(send_buffer.data() + sizeof(half) * i, sends, sizeof(half));
-  }
-  // std::cout << "send_buffer: \n";
-  // std::ofstream myfile;
-  // for(int i = 769920; i < 769926; i++)
-  // {
-  //   RCLCPP_INFO(this->get_logger(), "printing send_buffer: %d", send_buffer[i]);
-  //   // printf("%d ", send_buffer[i]);
-  //   // std::cout << send_buffer[i] << " ";
-  //   // if ((i+1)/6 == 1)
-  //   // {
-  //   //   std::cout << std::endl;
-  //   // }
-  // // myfile.write(reinterpret_cast<char*>(&send_buffer[i]), sizeof(uint8_t));
-  // // myfile.write(" ");
-  // // if ((i+1)%6 == 0)
-  // // {
-  // //   myfile << std::endl;
-  // // }
-  // } 
-  buff->setData(send_buffer);
+  buff->setData(buffer_2);
   device_->getInputQueue("xyz_in")->send(buff);
 }
 
@@ -799,7 +768,6 @@ std::vector<float> BaseCamera::create_xyz(int width, int height, std::vector<std
   int ooo = 0;
   for (auto cm : camera_matrix)
   {
-    RCLCPP_INFO(this->get_logger(), "M_right[%d]: %d", ooo, cm.size());
     int kkk = 0;
     for (auto value : cm)
     {
@@ -809,21 +777,21 @@ std::vector<float> BaseCamera::create_xyz(int width, int height, std::vector<std
     ooo++;
   }
   
-  Eigen::MatrixXd cx, cy;
-  RCLCPP_INFO(this->get_logger(), "fx fy...");
-  cx.setZero(height, width);
-	cy.setZero(height, width);
-  float fx = camera_matrix[0][0];
-  float fy = camera_matrix[1][1];
-  RCLCPP_INFO(this->get_logger(), "cx cy...");
-  cx.setConstant(camera_matrix[0][2]);
-  cy.setConstant(camera_matrix[1][2]);
-  Eigen::MatrixXd x_coord, y_coord;
-  RCLCPP_INFO(this->get_logger(), "x_coord y_coord...");
-  x_coord.setZero(height, width);
-	y_coord.setZero(height, width);
-  x_coord = (meshX - cx) / fx;
-  y_coord = (meshY - cy) / fy;
+  // Eigen::MatrixXd cx, cy;
+  // RCLCPP_INFO(this->get_logger(), "fx fy...");
+  // cx.setZero(height, width);
+	// cy.setZero(height, width);
+  // float fx = camera_matrix[0][0];
+  // float fy = camera_matrix[1][1];
+  // RCLCPP_INFO(this->get_logger(), "cx cy...");
+  // cx.setConstant(camera_matrix[0][2]);
+  // cy.setConstant(camera_matrix[1][2]);
+  // Eigen::MatrixXd x_coord, y_coord;
+  // RCLCPP_INFO(this->get_logger(), "x_coord y_coord...");
+  // x_coord.setZero(height, width);
+	// y_coord.setZero(height, width);
+  // x_coord = (meshX - cx) / fx;
+  // y_coord = (meshY - cy) / fy;
   // for(int i = 320; i < 332; i++)
   // {
   //   RCLCPP_INFO(this->get_logger(), "%f ", x_coord(125, i));
@@ -832,14 +800,20 @@ std::vector<float> BaseCamera::create_xyz(int width, int height, std::vector<std
   // {
   //   RCLCPP_INFO(this->get_logger(), "%f ", y_coord(125, i));
   // }
+  float fx = camera_matrix[0][0];
+  float fy = camera_matrix[1][1];
+  float cx = camera_matrix[0][2];
+  float cy = camera_matrix[1][2];
 
   RCLCPP_INFO(this->get_logger(), "stack_grid...");
   for(int i = 0; i < height; i++)
   {
     for(int j = 0; j < width; j++)
     {
-    stack_grid.push_back((float)x_coord(i, j));
-    stack_grid.push_back((float)y_coord(i, j));
+    // stack_grid.push_back((float)x_coord(i, j));
+    // stack_grid.push_back((float)y_coord(i, j));
+    stack_grid.push_back((meshX(i, j)-cx) / fx);
+    stack_grid.push_back((meshY(i, j)-cy) / fy);
     stack_grid.push_back(1.0f);
     }
   }
@@ -874,6 +848,81 @@ void  BaseCamera::meshgrid(Eigen::VectorXd &vecX, Eigen::VectorXd &vecY, Eigen::
 	}
   RCLCPP_INFO(this->get_logger(), "after meshgrid...");
 }
+
+std::vector<uint8_t> BaseCamera::convert_fp32_to_uint8_array(float value)
+{
+  uint32_t* k = reinterpret_cast<uint32_t*>(&value);
+  unsigned int fltInt32 = k[0];
+  unsigned short fltInt16;
+
+  fltInt16 = (fltInt32 >> 31) << 5;
+  unsigned short tmp = (fltInt32 >> 23) & 0xff;
+  tmp = (tmp - 0x70) & ((unsigned int)((int)(0x70 - tmp) >> 4) >> 27);
+  fltInt16 = (fltInt16 | tmp) << 10;
+  fltInt16 |= (fltInt32 >> 13) & 0x3ff;
+
+  std::vector<uint8_t> res;
+  uint8_t *m = reinterpret_cast<uint8_t*>(&fltInt16);
+
+  res.push_back(m[0]);
+  res.push_back(m[1]);
+
+  return res;
+}
+
+std::vector<std::uint8_t> BaseCamera::create_xyz2(int width, int height, std::vector<std::vector<float>> camera_matrix)
+{
+  cv::Range xs = cv::Range(0,width-1);
+  cv::Range ys = cv::Range(0,height-1);
+
+  std::vector<int> t_x, t_y;
+  for (int i = xs.start; i <= xs.end; i++) t_x.push_back(i);
+  for (int i = ys.start; i <= ys.end; i++) t_y.push_back(i);
+
+  float fx = camera_matrix.at(0).at(0);
+  float fy = camera_matrix.at(1).at(1);
+  float cx = camera_matrix.at(0).at(2);
+  float cy = camera_matrix.at(1).at(2);
+
+  cv::Mat y_coord(height,width,CV_32FC1);
+  cv::Mat x_coord(height,width,CV_32FC1);
+  for (int row_index = 0 ; row_index < height ; row_index++)
+  {
+    for (int col_index = 0 ; col_index < width ; col_index++)
+    {
+      float v = t_y.at(row_index);
+      y_coord.at<float>(row_index,col_index) = (v-cy)/fy;
+
+      float u = t_x.at(col_index);
+      x_coord.at<float>(row_index,col_index) =  (u-cx)/fx;
+    }
+  }
+
+  std::vector<uint8_t> result;
+
+  for (int row_index = 0 ; row_index < height ; row_index++)
+  {
+    for (int col_index = 0 ; col_index < width ; col_index++)
+    {
+      float X = x_coord.at<float>(row_index,col_index);
+      float Y = y_coord.at<float>(row_index,col_index);
+      float Z = 1.0f;
+
+      std::vector<uint8_t> X_int = convert_fp32_to_uint8_array(X);
+      std::vector<uint8_t> Y_int = convert_fp32_to_uint8_array(Y);
+      std::vector<uint8_t> Z_int = convert_fp32_to_uint8_array(Z);
+
+      result.push_back(X_int[0]);
+      result.push_back(X_int[1]);
+      result.push_back(Y_int[0]);
+      result.push_back(Y_int[1]);
+      result.push_back(Z_int[0]);
+      result.push_back(Z_int[1]);
+    }
+  }
+  return result;
+}
+
 
 
 }  // namespace depthai_ros_driver

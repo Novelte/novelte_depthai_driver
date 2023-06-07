@@ -19,6 +19,7 @@
 // SOFTWARE.
 
 #include "depthai_ros_driver/nn_pointcloud.hpp"
+#include "depthai_ros_driver/half.hpp"
 
 #include <memory>
 #include <string>
@@ -31,6 +32,7 @@
 #include "sensor_msgs/msg/point_cloud2.hpp"
 #include "sensor_msgs/msg/point_field.hpp"
 #include <sensor_msgs/point_cloud2_iterator.hpp>
+using half_float::half;
 
 namespace depthai_ros_driver
 {
@@ -53,10 +55,6 @@ void NnPointcloud::on_configure()
   RCLCPP_INFO(this->get_logger(), "NnPointcloud ready!");
 }
 
-// void NnPointcloud::timer_callback()
-// {
-
-// }
 void NnPointcloud::setup_pipeline()
 {
   rgb_params::RGBInitConfig config;
@@ -72,7 +70,6 @@ void NnPointcloud::setup_pipeline()
   nn_->setNumInferenceThreads(2);
   nn_->input.setBlocking(false);
 
-
   stereo_->depth.link(nn_->inputs["depth"]);
 
   xyz_in_ = pipeline->create<dai::node::XLinkIn>();
@@ -80,20 +77,12 @@ void NnPointcloud::setup_pipeline()
   xyz_in_->setStreamName("xyz_in");
   xyz_in_->out.link(nn_->inputs["xyz"]);
 
-
   // Only send xyz data once, and always reuse the message
   nn_->inputs["xyz"].setReusePreviousMessage(true);
-
 
   pointsOut_ = pipeline->create<dai::node::XLinkOut>();
   pointsOut_->setStreamName("pcl");
   nn_->out.link(pointsOut_->input);
-  
-
-
-
-
-
 
   start_device();
   setup_all_queues();
@@ -116,8 +105,7 @@ void NnPointcloud::setup_publishers()
 
 void NnPointcloud::det_cb(const std::string & name, const std::shared_ptr<dai::ADatatype> & data)
 {
-  // RCLCPP_INFO(this->get_logger(), "name: %s", name.c_str());
-  
+  // RCLCPP_INFO(this->get_logger(), "name: %s", name.c_str());  
   
   auto in_pc = std::dynamic_pointer_cast<dai::NNData>(data);
   
@@ -128,24 +116,9 @@ void NnPointcloud::det_cb(const std::string & name, const std::shared_ptr<dai::A
   cloud_msg->width = 640;
   cloud_msg->is_dense = false;
   cloud_msg->is_bigendian = false;
-  auto data_pc = in_pc->getFirstLayerFp16();
-  // auto data_raw = in_pc->getRaw()->data;
-  // RCLCPP_INFO(this->get_logger(), "size: %d", data_raw.size());
-
-  // RCLCPP_INFO(this->get_logger(), "pc: %f %f %f %f %f %f %f %f %f %f", data_pc[0], data_pc[1], data_pc[2], data_pc[3], data_pc[4], data_pc[5], data_pc[6], data_pc[7], data_pc[8], data_pc[9]);
-  // RCLCPP_INFO(this->get_logger(), "pc: %f %f %f %f %f %f %f %f %f %f", 
-  // data_pc[data_pc.size()-0], 
-  // data_pc[data_pc.size()-1], 
-  // data_pc[data_pc.size()-2], 
-  // data_pc[data_pc.size()-3], 
-  // data_pc[data_pc.size()-4], 
-  // data_pc[data_pc.size()-5], 
-  // data_pc[data_pc.size()-6], 
-  // data_pc[data_pc.size()-7], 
-  // data_pc[data_pc.size()-8], 
-  // data_pc[data_pc.size()-9]);
-  
+  std::vector<float> data_pc = in_pc->getLayerFp16(std::string("out"));
   // RCLCPP_INFO(this->get_logger(), "data_pc size: %d", data_pc.size());
+
   sensor_msgs::PointCloud2Modifier pcd_modifier(*cloud_msg);
   pcd_modifier.setPointCloud2FieldsByString(1, "xyz");
 
@@ -153,24 +126,27 @@ void NnPointcloud::det_cb(const std::string & name, const std::shared_ptr<dai::A
   sensor_msgs::PointCloud2Iterator<float> iter_y(*cloud_msg, "y");
   sensor_msgs::PointCloud2Iterator<float> iter_z(*cloud_msg, "z");
   float bad_point = std::numeric_limits<float>::quiet_NaN();
-  for(int i = 0; i < cloud_msg->height; i++)
+
+  auto resolution = cloud_msg->width * cloud_msg->height;
+  // RCLCPP_INFO(this->get_logger(), "resolution: %d", resolution);
+  // RCLCPP_INFO(this->get_logger(), "data / 3  : %d", data_pc.size()/3);
+  for(int i = 0; i < resolution; i++, ++iter_x, ++iter_y, ++iter_z)
   {
-    for(int j = 0; j < cloud_msg->width; j++, ++iter_x, ++iter_y, ++iter_z)
+    auto x = data_pc[i];
+    auto y = data_pc[i + resolution];
+    auto z = data_pc[i + resolution * 2];
+
+    if (!std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z) )
     {
-      auto x = data_pc[j + i * cloud_msg->width ];
-      auto y = data_pc[j + i * cloud_msg->width + cloud_msg->width * cloud_msg->height];
-      auto z = data_pc[j + i * cloud_msg->width + cloud_msg->width * cloud_msg->height * 2];
-      // RCLCPP_INFO(this->get_logger(), "pc: %f", data_pc[cloud_msg->width * cloud_msg->height + i * cloud_msg->width + j]);
-      // if (!std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z) )
-      // {
-      //   *iter_x = *iter_y = *iter_z = bad_point;
-      //   continue;
-      // }
-      *iter_x = x / 1000.0;
-      *iter_y = y / 1000.0;
-      *iter_z = z / 1000.0;    
+      *iter_x = *iter_y = *iter_z = bad_point;
+      continue;
     }
+
+    *iter_x = x / 1000.0;
+    *iter_y = y / 1000.0;
+    *iter_z = z / 1000.0;    
   }
+
   pc_pub_->publish(*cloud_msg);
 
   return;

@@ -143,6 +143,8 @@ public:
   void setup_nnpointcloud();
   void meshgrid(Eigen::VectorXd &vecX, Eigen::VectorXd &vecY, Eigen::MatrixXd &meshX, Eigen::MatrixXd &meshY);
   std::vector<float> create_xyz(int width, int height, std::vector<std::vector<float>> camera_matrix);
+  std::vector<uint8_t> create_xyz2(int width, int height, std::vector<std::vector<float>> camera_matrix);
+  std::vector<uint8_t> convert_fp32_to_uint8_array(float value);
   rcl_interfaces::msg::SetParametersResult parameter_cb(
     const std::vector<rclcpp::Parameter> & params);
   void setup_config_q();
