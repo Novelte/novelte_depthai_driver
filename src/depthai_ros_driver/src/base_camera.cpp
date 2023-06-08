@@ -332,7 +332,7 @@ void BaseCamera::setup_all_xout_streams()
   }
   if (base_config_.enable_depth) {
     RCLCPP_INFO(this->get_logger(), "Enabling depth pub.");
-    setup_depth_xout();
+    // setup_depth_xout();
   }
   if (base_config_.enable_lr) {
     RCLCPP_INFO(this->get_logger(), "Enabling left & right pub.");
