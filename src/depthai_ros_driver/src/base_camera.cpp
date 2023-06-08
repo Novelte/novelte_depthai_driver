@@ -638,7 +638,7 @@ void BaseCamera::setup_all_queues()
     enable_rgb_q();
   }
   if (base_config_.enable_depth) {
-    enable_depth_q();
+    // enable_depth_q();
   }
   if (base_config_.enable_lr) {
     setup_lr_q();
