@@ -18,6 +18,7 @@ def generate_launch_description():
         [
             DeclareLaunchArgument("use_rviz", default_value="False"),
             DeclareLaunchArgument("mxid", default_value=""),
+            DeclareLaunchArgument("namespace"), default_value="",
             Node(
                 condition=IfCondition(LaunchConfiguration("use_rviz")),
                 package="rviz2",
@@ -33,7 +34,7 @@ def generate_launch_description():
             ),
             ComposableNodeContainer(
                 name="container",
-                namespace="",
+                namespace=LaunchConfiguration("namespace"),
                 package="rclcpp_components",
                 executable="component_container",
                 composable_node_descriptions=[
