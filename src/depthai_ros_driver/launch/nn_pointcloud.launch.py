@@ -17,6 +17,7 @@ def generate_launch_description():
     return LaunchDescription(
         [
             DeclareLaunchArgument("use_rviz", default_value="False"),
+            DeclareLaunchArgument("mxid", default_value=""),
             Node(
                 condition=IfCondition(LaunchConfiguration("use_rviz")),
                 package="rviz2",
@@ -41,6 +42,7 @@ def generate_launch_description():
                         plugin="depthai_ros_driver::NnPointcloud",
                         name="camera",
                         parameters=[{
+                            "i_camera_mxid": LaunchConfiguration("mxid"),
                             "i_rgb_fps": 30.0,
                             "i_mono_fps" : 30.0,
                             "i_mono_resolution" : "400",
