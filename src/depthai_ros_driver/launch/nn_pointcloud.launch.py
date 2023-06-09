@@ -39,6 +39,7 @@ def generate_launch_description():
                 executable="component_container",
                 composable_node_descriptions=[
                     ComposableNode(
+                        namespace=LaunchConfiguration("namespace"),
                         package="depthai_ros_driver",
                         plugin="depthai_ros_driver::NnPointcloud",
                         name="camera",
