@@ -116,9 +116,9 @@ void NnPointcloud::det_cb(const std::string & name, const std::shared_ptr<dai::A
   cloud_msg->width = 640;
   cloud_msg->is_dense = false;
   cloud_msg->is_bigendian = false;
-  // std::vector<float> data_pc = in_pc->getLayerFp16(std::string("out"));
+  std::vector<float> data_pc = in_pc->getLayerFp16(std::string("out"));
   // RCLCPP_INFO(this->get_logger(), "data_pc size: %d", data_pc.size());
-  std::vector<float> data_pc(768000);
+  // std::vector<float> data_pc(768000);
 
   sensor_msgs::PointCloud2Modifier pcd_modifier(*cloud_msg);
   pcd_modifier.setPointCloud2FieldsByString(1, "xyz");
