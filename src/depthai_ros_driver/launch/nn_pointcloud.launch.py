@@ -18,7 +18,7 @@ def generate_launch_description():
         [
             DeclareLaunchArgument("use_rviz", default_value="False"),
             DeclareLaunchArgument("mxid", default_value=""),
-            DeclareLaunchArgument("namespace"), default_value="",
+            DeclareLaunchArgument("namespace", default_value=""),
             Node(
                 condition=IfCondition(LaunchConfiguration("use_rviz")),
                 package="rviz2",
