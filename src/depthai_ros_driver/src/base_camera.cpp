@@ -152,7 +152,7 @@ void BaseCamera::start_device()
   bool cam_setup = false;
   dai::DeviceInfo info;
   bool device_found;
-  RCLCPP_ERROR(this->get_logger(), "Mxid: ", base_config_.camera_mxid.c_str());
+  RCLCPP_INFO(this->get_logger(), "Mxid: ", base_config_.camera_mxid.c_str());
   if (!base_config_.camera_mxid.empty()) {
     info = dai::DeviceInfo(base_config_.camera_mxid);
   } else if (!base_config_.camera_ip.empty()) {
@@ -723,6 +723,8 @@ void BaseCamera::declare_common_params()
     this->declare_parameter<int>(base_param_names_.max_q_size, 4);
   base_config_.camera_mxid =
     this->declare_parameter<std::string>(base_param_names_.camera_mxid, "");
+
+  RCLCPP_INFO(this->get_logger(), "Mxid: ", base_config_.camera_mxid.c_str());
   base_config_.camera_ip =
     this->declare_parameter<std::string>(base_param_names_.camera_ip, "");
 }
