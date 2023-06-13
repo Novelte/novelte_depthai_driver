@@ -333,7 +333,7 @@ void BaseCamera::setup_all_xout_streams()
   }
   if (base_config_.enable_depth) {
     RCLCPP_INFO(this->get_logger(), "Enabling depth pub.");
-    // setup_depth_xout();
+    setup_depth_xout();
   }
   if (base_config_.enable_lr) {
     RCLCPP_INFO(this->get_logger(), "Enabling left & right pub.");
@@ -639,7 +639,7 @@ void BaseCamera::setup_all_queues()
     enable_rgb_q();
   }
   if (base_config_.enable_depth) {
-    // enable_depth_q();
+    enable_depth_q();
   }
   if (base_config_.enable_lr) {
     setup_lr_q();
@@ -732,124 +732,13 @@ void BaseCamera::setup_nnpointcloud()
 {
   RCLCPP_INFO(this->get_logger(), "setup_nnpointcloud...");
   auto readCalibData_ = device_->readCalibration();
-  // M_right_ = readCalibData_.getCameraIntrinsics(dai::CameraBoardSocket::AUTO, dai::Size2f(640,400));
   int aa, bb;
   std::tuple<std::vector<std::vector<float>>, int, int> aaaaa = readCalibData_.getDefaultIntrinsics(dai::CameraBoardSocket::RIGHT);
-  // M_right_, aa, bb =
   M_right_ = std::get<std::vector<std::vector<float>>>(aaaaa);
-  std::vector<uint8_t> buffer_2 = create_xyz2(640, 400, M_right_);
+  std::vector<uint8_t> buffer_2 = create_xyz(640, 400, M_right_);
   auto buff = std::make_shared<dai::Buffer>();
   buff->setData(buffer_2);
   device_->getInputQueue("xyz_in")->send(buff);
-}
-
-
-std::vector<float> BaseCamera::create_xyz(int width, int height, std::vector<std::vector<float>> camera_matrix)
-{
-  RCLCPP_INFO(this->get_logger(), "create_xyz...");
-  Eigen::VectorXd vecW, vecH;
-	vecW.setZero(width, 1);
-	vecH.setZero(height, 1);
-  vecW = Eigen::VectorXd::LinSpaced(width, 0, width -1);
-  vecH = Eigen::VectorXd::LinSpaced(height, 0, height -1);
-  // nc::NdArray<double> xs = nc::linspace(0.0, double(width - 1), double(width));
-  // nc::NdArray<double> ys = nc::linspace(0.0, double(height - 1), double(height));
-  Eigen::MatrixXd meshX, meshY;
-  meshX.setZero(height, width);
-	meshY.setZero(height, width);
-  meshgrid(vecW, vecH, meshX, meshY);
-  // std::cout << "size X: "<< meshX.cols() << " " << meshX.rows() << std::endl;
-  // std::cout << "size Y: " << meshY.cols() << " " << meshY.rows() << std::endl;
-  // base_grid.first.print();
-  // base_grid.second.print();
-  // RCLCPP_INFO(this->get_logger(), "stack_grid...");
-  std::vector<float> stack_grid;
-  // RCLCPP_INFO(this->get_logger(), "tensor_grid...");
-  // meshX= meshX.transpose();
-  // meshY = meshY.transpose();
-  RCLCPP_INFO(this->get_logger(), "M_right: %d", camera_matrix.size());
-  int ooo = 0;
-  for (auto cm : camera_matrix)
-  {
-    int kkk = 0;
-    for (auto value : cm)
-    {
-      RCLCPP_INFO(this->get_logger(), "M_right[%d][%d]: %f", ooo, kkk, value);
-      kkk++;
-    }
-    ooo++;
-  }
-  
-  // Eigen::MatrixXd cx, cy;
-  // RCLCPP_INFO(this->get_logger(), "fx fy...");
-  // cx.setZero(height, width);
-	// cy.setZero(height, width);
-  // float fx = camera_matrix[0][0];
-  // float fy = camera_matrix[1][1];
-  // RCLCPP_INFO(this->get_logger(), "cx cy...");
-  // cx.setConstant(camera_matrix[0][2]);
-  // cy.setConstant(camera_matrix[1][2]);
-  // Eigen::MatrixXd x_coord, y_coord;
-  // RCLCPP_INFO(this->get_logger(), "x_coord y_coord...");
-  // x_coord.setZero(height, width);
-	// y_coord.setZero(height, width);
-  // x_coord = (meshX - cx) / fx;
-  // y_coord = (meshY - cy) / fy;
-  // for(int i = 320; i < 332; i++)
-  // {
-  //   RCLCPP_INFO(this->get_logger(), "%f ", x_coord(125, i));
-  // }
-  // for(int i = 320; i < 332; i++)
-  // {
-  //   RCLCPP_INFO(this->get_logger(), "%f ", y_coord(125, i));
-  // }
-  float fx = camera_matrix[0][0];
-  float fy = camera_matrix[1][1];
-  float cx = camera_matrix[0][2];
-  float cy = camera_matrix[1][2];
-
-  RCLCPP_INFO(this->get_logger(), "stack_grid...");
-  for(int i = 0; i < height; i++)
-  {
-    for(int j = 0; j < width; j++)
-    {
-    // stack_grid.push_back((float)x_coord(i, j));
-    // stack_grid.push_back((float)y_coord(i, j));
-    stack_grid.push_back((meshX(i, j)-cx) / fx);
-    stack_grid.push_back((meshY(i, j)-cy) / fy);
-    stack_grid.push_back(1.0f);
-    }
-  }
-  // for(int i = 0; i < 10; i++)
-  // {
-  //   std::cout << stack_grid(i, 0, 0) << " ";
-  // }
-
-
-  return stack_grid;
-
-}
-
-void  BaseCamera::meshgrid(Eigen::VectorXd &vecX, Eigen::VectorXd &vecY, Eigen::MatrixXd &meshX, Eigen::MatrixXd &meshY)
-{
-  RCLCPP_INFO(this->get_logger(), "meshgrid...");
-	int vecXLength = vecX.size();
-	int vecYLength = vecY.size();
-	//meshX.resize(vecXLength, vecYLength);
-	//meshY.resize(vecXLength, vecYLength);
-	//std::cout << "meshX.size()\n" << meshX.size() << "\n" << "meshY.size()\n" << meshY.size() << std::endl;
-	for (int i = 0; i < vecYLength; ++i)
-	{	
-		meshX.row(i) = vecX;
-		// std::cout << "meshX.row("<< i <<")\n" << meshX.row(i)<< std::endl;
-	}
-
-	for (int i = 0; i < vecXLength; ++i)
-	{
-		meshY.col(i) = vecY.transpose();
-		//std::cout << "meshX.row(" << i << ")\n" << meshY.col(i) << std::endl;
-	}
-  RCLCPP_INFO(this->get_logger(), "after meshgrid...");
 }
 
 std::vector<uint8_t> BaseCamera::convert_fp32_to_uint8_array(float value)
@@ -873,7 +762,7 @@ std::vector<uint8_t> BaseCamera::convert_fp32_to_uint8_array(float value)
   return res;
 }
 
-std::vector<std::uint8_t> BaseCamera::create_xyz2(int width, int height, std::vector<std::vector<float>> camera_matrix)
+std::vector<std::uint8_t> BaseCamera::create_xyz(int width, int height, std::vector<std::vector<float>> camera_matrix)
 {
   cv::Range xs = cv::Range(0,width-1);
   cv::Range ys = cv::Range(0,height-1);
@@ -925,7 +814,5 @@ std::vector<std::uint8_t> BaseCamera::create_xyz2(int width, int height, std::ve
   }
   return result;
 }
-
-
 
 }  // namespace depthai_ros_driver

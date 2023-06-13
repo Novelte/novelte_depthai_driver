@@ -156,4 +156,4 @@ void NnPointcloud::det_cb(const std::string & name, const std::shared_ptr<dai::A
 
 }  // namespace depthai_ros_driver
 #include "rclcpp_components/register_node_macro.hpp"
-RCLCPP_COMPONENTS_REGISTER_NODE(depthai_ros_driver::NnPointcloud)
+RCLCPP_COMPONENTS_REGISTER_NODE(depthai_ros_driver::NnPointcloud);
