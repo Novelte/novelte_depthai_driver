@@ -81,12 +81,12 @@ def generate_launch_description():
 
             DeclareLaunchArgument(
                 'tf_prefix',
-                default_value = 'front_camera',
+                default_value = 'demo_camera',
                 description='prefix camera frame'),
             
             DeclareLaunchArgument(
                 'base_frame',
-                default_value = 'front_camera_link',
+                default_value = 'demo_camera_link',
                 description='camera link frame id'),
             
             DeclareLaunchArgument(
