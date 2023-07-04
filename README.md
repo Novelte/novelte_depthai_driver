@@ -2,6 +2,10 @@
 
 ### You can find newer version of the driver at https://github.com/luxonis/depthai-ros
 
+## Remarks
+if you encounter static link issue, try removing hunder cache
+sudo rm -r /home/{user_name}/.hunter/
+
 Work presented here has been developed by Adam Serafin while at Inmotion Labs
 
 Hi! This is a simple (for now) project that enables Luxonis' DepthAI camera to work with ROS2 based systems.
