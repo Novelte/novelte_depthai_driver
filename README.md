@@ -6,6 +6,18 @@
 if you encounter static link issue, try removing hunder cache
 sudo rm -r /home/{user_name}/.hunter/
 
+## deploy with docker
+```
+# run docker build at root folder
+ ./build_deploy_dockerfile.sh
+
+ # docker run
+docker run -it --rm -v /dev:/dev --privileged --network="host" novelte/depthai {your_launch_file}
+
+ # docker launch rgbd_camera_modi.launch.py
+docker run -it --rm -v /dev:/dev --privileged --network="host" novelte/depthai ros2 launch depthai_ros_driver rgbd_camera_modi.launch.py
+```
+
 Work presented here has been developed by Adam Serafin while at Inmotion Labs
 
 Hi! This is a simple (for now) project that enables Luxonis' DepthAI camera to work with ROS2 based systems.
