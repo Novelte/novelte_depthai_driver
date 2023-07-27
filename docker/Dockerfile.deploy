@@ -1,0 +1,20 @@
+FROM ros:humble-perception
+
+SHELL ["/bin/bash", "-c"]
+
+RUN mkdir -p /opt/depthai/src/novelte_depthai_driver
+
+COPY ./ /opt/depthai/src/novelte_depthai_driver
+
+RUN cd /opt/depthai && \
+    /opt/depthai/src/novelte_depthai_driver/install_dependencies.sh && \
+    source /opt/ros/humble/setup.bash && \
+    colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release \
+      --cmake-args -DBUILD_TESTING=OFF --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+      --cmake-args -DCMAKE_POSITION_INDEPENDENT_CODE=ON --cmake-args -DBUILD_SHARED_LIBS=ON
+
+RUN rm -Rf src logs build && rm -rf /var/lib/apt/lists/*
+
+COPY ./docker/depthai_entrypoint.sh /
+RUN  chmod +x /depthai_entrypoint.sh
+ENTRYPOINT ["/depthai_entrypoint.sh"]

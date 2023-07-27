@@ -9,6 +9,8 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node, ComposableNodeContainer, LoadComposableNodes
 from launch_ros.descriptions import ComposableNode
 
+depthai_prefix = get_package_share_directory("depthai_ros_driver")
+
 def launch_setup(context, *args, **kwargs):
     params_file = LaunchConfiguration('params_file')
     tf_prefix = LaunchConfiguration('tf_prefix')
@@ -21,7 +23,6 @@ def launch_setup(context, *args, **kwargs):
     cam_pitch    = LaunchConfiguration('cam_pitch')
     cam_yaw      = LaunchConfiguration('cam_yaw')
 
-    depthai_prefix = get_package_share_directory("depthai_ros_driver")
     tf_prefix_str = tf_prefix.perform(context)
     return [
             IncludeLaunchDescription(
@@ -76,7 +77,7 @@ def generate_launch_description():
         [
             DeclareLaunchArgument(
                 'params_file',
-                default_value = '/var/novelte/config/camera_param.yaml',
+                default_value = os.path.join(depthai_prefix, "config", "demo_cam.yaml"),
                 description='Full path to the camera_param parameters file to use for all launched nodes'),
 
             DeclareLaunchArgument(
